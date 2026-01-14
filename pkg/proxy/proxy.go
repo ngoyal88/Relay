@@ -8,12 +8,12 @@ import (
 )
 
 // REMOVED: 'limiter' field from struct
-type Gateway struct {
+type Relay struct {
 	target *url.URL
 	proxy  *httputil.ReverseProxy
 }
 
-func New(targetURL string) (*Gateway, error) {
+func New(targetURL string) (*Relay, error) {
 	parsedURL, err := url.Parse(targetURL)
 	if err != nil {
 		return nil, err
@@ -34,13 +34,13 @@ func New(targetURL string) (*Gateway, error) {
 	}
 
 	// REMOVED: rate.NewLimiter code
-	return &Gateway{
+	return &Relay{
 		target: parsedURL,
 		proxy:  p,
 	}, nil
 }
 
-func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (g *Relay) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// REMOVED: limiter.Allow() check.
 	// The Proxy is now "dumb" again (which is good!).
 	g.proxy.ServeHTTP(w, r)
