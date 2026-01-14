@@ -18,14 +18,11 @@ func CountTokens(model string, text string) (int, error) {
 	return len(tokenIds), nil
 }
 
-// EstimateCost calculates price based on input tokens (Rough estimation)
-// Pricing is usually: $0.0005 per 1k tokens for GPT-3.5 Input
-func EstimateCost(tokens int, model string) float64 {
-	var pricePer1k float64 = 0.0005 // Default (GPT-3.5 Turbo)
-	
-	if model == "gpt-4" {
-		pricePer1k = 0.03
+// EstimateCost calculates price based on input tokens using provided price map (USD per 1k tokens)
+func EstimateCost(tokens int, model string, prices map[string]float64) float64 {
+	pricePer1k, ok := prices[model]
+	if !ok {
+		return 0
 	}
-	
 	return (float64(tokens) / 1000.0) * pricePer1k
 }

@@ -17,9 +17,9 @@ import (
 // responseWrapper "wraps" the standard ResponseWriter.
 // It acts like a Spy: it writes data to the user AND saves a copy in memory.
 type responseWrapper struct {
-	http.ResponseWriter // Embed the original interface
-	body       bytes.Buffer // Our secret storage
-	statusCode int
+	http.ResponseWriter              // Embed the original interface
+	body                bytes.Buffer // Our secret storage
+	statusCode          int
 }
 
 // WriteHeader captures the status code (e.g., 200 or 404)
@@ -34,7 +34,7 @@ func (rw *responseWrapper) Write(b []byte) (int, error) {
 	if rw.statusCode == 0 {
 		rw.statusCode = http.StatusOK
 	}
-	
+
 	rw.body.Write(b)                  // Copy to our buffer
 	return rw.ResponseWriter.Write(b) // Send to user
 }
@@ -62,14 +62,17 @@ func CachingMiddleware(rdb *cache.Client) func(http.Handler) http.Handler {
 
 			val, err := rdb.Get(ctx, key)
 			if err == nil {
-				// HIT!
+				cacheHits.Inc()
 				w.Header().Set("X-Cache", "HIT")
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusOK)
 				w.Write(val)
 				log.Printf("⚡ [CACHE] HIT for key %s", key[:8])
 				return
-			} else if err != context.DeadlineExceeded && err.Error() != "redis: nil" {
+			}
+
+			cacheMisses.Inc()
+			if err != context.DeadlineExceeded && err.Error() != "redis: nil" {
 				// Log actual Redis errors (connection refused, etc)
 				log.Printf("⚠️ [CACHE] Redis error: %v", err)
 			}
@@ -83,7 +86,7 @@ func CachingMiddleware(rdb *cache.Client) func(http.Handler) http.Handler {
 				go func(k string, data []byte) {
 					ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 					defer cancel()
-					
+
 					if err := rdb.Set(ctx, k, data, time.Hour); err != nil {
 						log.Printf("⚠️ [CACHE] Failed to save: %v", err)
 					} else {

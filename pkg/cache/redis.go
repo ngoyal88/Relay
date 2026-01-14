@@ -13,6 +13,11 @@ type Client struct {
 	rdb *redis.Client
 }
 
+// Redis exposes the underlying go-redis client for shared middleware utilities.
+func (c *Client) Redis() *redis.Client {
+	return c.rdb
+}
+
 // NewRedis connects to the Redis server
 func NewRedis(addr, password string, db int) (*Client, error) {
 	rdb := redis.NewClient(&redis.Options{

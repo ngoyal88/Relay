@@ -5,18 +5,22 @@ import (
 	"log"
 	"net/http"
 
-		"github.com/ngoyal88/relay/pkg/cache" // Check this path matches your go.mod
-		"github.com/ngoyal88/relay/pkg/config"
-		"github.com/ngoyal88/relay/pkg/middleware"
-		"github.com/ngoyal88/relay/pkg/proxy"
-	"golang.org/x/time/rate"
+	"github.com/ngoyal88/relay/pkg/cache" // Check this path matches your go.mod
+	"github.com/ngoyal88/relay/pkg/config"
+	"github.com/ngoyal88/relay/pkg/middleware"
+	"github.com/ngoyal88/relay/pkg/proxy"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func main() {
-	// 1. Load Config
-	cfg, err := config.Load()
+	// 1. Load Config with hot reload
+	cfgStore, err := config.LoadAndWatch()
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
+	}
+	cfg := cfgStore.Get()
+	if cfg == nil {
+		log.Fatal("Config could not be read")
 	}
 
 	// 2. Initialize Redis
@@ -42,26 +46,27 @@ func main() {
 	// Start with the inner-most handler (The Proxy)
 	var handler http.Handler = gw
 
-	// Layer A: Rate Limiter
-	if cfg.RateLimit.Enabled {
-		rps := rate.Limit(cfg.RateLimit.RPS)
-		handler = middleware.NewRateLimiter(rps, cfg.RateLimit.Burst)(handler)
-	}
+	// Layer A: Rate Limiter (distributed if Redis is available; in-memory fallback) with live config
+	handler = middleware.NewRateLimiter(rdb, cfgStore)(handler)
 
 	// Layer B: Caching (Only if Redis is connected)
 	if cfg.Redis.Enabled && rdb != nil {
 		handler = middleware.CachingMiddleware(rdb)(handler)
 	}
 
-	// Layer C: Cost Tracking
-	handler = middleware.TokenCostLogger(handler)
+	// Layer C: Cost Tracking (uses live pricing from config store)
+	handler = middleware.TokenCostLogger(cfgStore)(handler)
 
 	// Layer D: Request Logging (Outer-most)
 	handler = middleware.RequestLogger(handler)
 
-	// 5. Start Server
+	// 5. Expose metrics and start server
+	mux := http.NewServeMux()
+	mux.Handle("/metrics", promhttp.Handler())
+	mux.Handle("/", handler)
+
 	fmt.Printf("Relay starting on %s\n", cfg.Server.Port)
-	if err := http.ListenAndServe(cfg.Server.Port, handler); err != nil {
+	if err := http.ListenAndServe(cfg.Server.Port, mux); err != nil {
 		log.Fatal("Server failed:", err)
 	}
 }
