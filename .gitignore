@@ -1,0 +1,12 @@
+# Binaries
+relay
+relay.exe
+
+# OS junk
+.DS_Store
+
+# Configs containing Secrets (IMPORTANT)
+configs/config.yaml
+
+# Docker
+docker-compose.override.yml

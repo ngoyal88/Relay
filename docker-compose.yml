@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  # Service 1: The Relay service
+  relay:
+    build: .
+    container_name: relay_app
+    ports:
+      - "8080:8080"
+    depends_on:
+      - redis
+    environment:
+      - SERVER_PORT=:8080
+      - REDIS_ADDRESS=redis:6379 
+
+  # Service 2: The Cache
+  redis:
+    image: redis:alpine
+    container_name: relay_redis
+    ports:
+      - "6379:6379"
+    restart: always
