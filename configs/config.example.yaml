@@ -1,0 +1,79 @@
+server:
+  port: ":8080"
+
+# Authentication
+auth:
+  enabled: true  # Set to false to disable API key authentication
+
+# Proxy configuration (legacy single target)
+proxy:
+  target: "https://api.openai.com"
+
+# Load balancer (multi-target configuration)
+# Uncomment to use multiple backends
+# loadbalancer:
+#   enabled: true
+#   strategy: "weighted"  # Options: round-robin, weighted, least-latency, random
+#   targets:
+#     - url: "https://api.openai.com"
+#       weight: 70
+#     - url: "https://api.anthropic.com"
+#       weight: 30
+
+# Rate limiting
+ratelimit:
+  enabled: true
+  requests_per_second: 10.0
+  burst: 20
+
+# Redis configuration
+redis:
+  enabled: true
+  address: "localhost:6379"
+  password: ""
+  db: 0
+
+# Request/Response logging
+logging:
+  enabled: true
+  retention_days: 30  # How long to keep logs
+
+# Request transformation
+transform:
+  enabled: false  # Enable to use transformation rules
+  
+  # Header transformations
+  remove_headers:
+    - "X-Internal-Secret"
+  add_headers:
+    X-Relay-Version: "1.0"
+  
+  # Sensitive data masking
+  mask_sensitive_data: true
+  
+  # Path filtering
+  # allowed_paths:
+  #   - "^/v1/chat/completions$"
+  # blocked_paths:
+  #   - "^/admin/.*"
+  
+  # Request body transformations
+  # request_rules:
+  #   - type: "add"
+  #     path: "metadata.relay_version"
+  #     value: "1.0"
+  
+  # Response body transformations
+  # response_rules:
+  #   - type: "remove"
+  #     path: "usage.internal_details"
+
+# Model pricing (USD per 1K tokens)
+models:
+  gpt-4: 0.03
+  gpt-4-32k: 0.06
+  gpt-3.5-turbo: 0.002
+  gpt-4-turbo: 0.01
+  claude-3-opus: 0.015
+  claude-3-sonnet: 0.003
+  claude-3-haiku: 0.00025

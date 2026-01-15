@@ -11,11 +11,15 @@ import (
 // Config holds all the configuration for our application
 // The structure tags (mapstructure) tell Viper which YAML field maps to which Go struct field.
 type Config struct {
-	Server    ServerConfig       `mapstructure:"server"`
-	Proxy     ProxyConfig        `mapstructure:"proxy"`
-	RateLimit RateLimitConfig    `mapstructure:"ratelimit"`
-	Redis     RedisConfig        `mapstructure:"redis"`
-	Models    map[string]float64 `mapstructure:"models"`
+	Server       ServerConfig       `mapstructure:"server"`
+	Proxy        ProxyConfig        `mapstructure:"proxy"`
+	RateLimit    RateLimitConfig    `mapstructure:"ratelimit"`
+	Redis        RedisConfig        `mapstructure:"redis"`
+	Auth         AuthConfig         `mapstructure:"auth"`
+	Logging      LoggingConfig      `mapstructure:"logging"`
+	Transform    TransformConfig    `mapstructure:"transform"`
+	LoadBalancer LoadBalancerConfig `mapstructure:"loadbalancer"`
+	Models       map[string]float64 `mapstructure:"models"`
 }
 
 type ServerConfig struct {
@@ -30,6 +34,47 @@ type RateLimitConfig struct {
 	Enabled bool    `mapstructure:"enabled"`
 	RPS     float64 `mapstructure:"requests_per_second"`
 	Burst   int     `mapstructure:"burst"`
+}
+
+type AuthConfig struct {
+	Enabled  bool   `mapstructure:"enabled"`
+	AdminKey string `mapstructure:"admin_key"`
+}
+
+type LoggingConfig struct {
+	Enabled       bool `mapstructure:"enabled"`
+	RetentionDays int  `mapstructure:"retention_days"`
+}
+
+type TransformConfig struct {
+	Enabled           bool              `mapstructure:"enabled"`
+	RemoveHeaders     []string          `mapstructure:"remove_headers"`
+	AddHeaders        map[string]string `mapstructure:"add_headers"`
+	ReplaceHeaders    map[string]string `mapstructure:"replace_headers"`
+	RequestRules      []TransformRule   `mapstructure:"request_rules"`
+	ResponseRules     []TransformRule   `mapstructure:"response_rules"`
+	MaskSensitiveData bool              `mapstructure:"mask_sensitive_data"`
+	AllowedPaths      []string          `mapstructure:"allowed_paths"`
+	BlockedPaths      []string          `mapstructure:"blocked_paths"`
+}
+
+type TransformRule struct {
+	Type    string      `mapstructure:"type"`
+	Path    string      `mapstructure:"path"`
+	Value   interface{} `mapstructure:"value"`
+	Pattern string      `mapstructure:"pattern"`
+	Replace string      `mapstructure:"replace"`
+}
+
+type LoadBalancerConfig struct {
+	Enabled  bool                 `mapstructure:"enabled"`
+	Strategy string               `mapstructure:"strategy"`
+	Targets  []LoadBalancerTarget `mapstructure:"targets"`
+}
+
+type LoadBalancerTarget struct {
+	URL    string `mapstructure:"url"`
+	Weight int    `mapstructure:"weight"`
 }
 type RedisConfig struct {
 	Address  string `mapstructure:"address"`
@@ -96,7 +141,6 @@ func Load() (*Config, error) {
 	}
 	return store.Get(), nil
 }
-
 
 func refresh(v *viper.Viper, store *Store) error {
 	var cfg Config
