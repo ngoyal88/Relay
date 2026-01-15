@@ -39,6 +39,13 @@ func (rw *responseWrapper) Write(b []byte) (int, error) {
 	return rw.ResponseWriter.Write(b) // Send to user
 }
 
+// Flush forwards flushes to the underlying writer to preserve streaming behavior.
+func (rw *responseWrapper) Flush() {
+	if f, ok := rw.ResponseWriter.(http.Flusher); ok {
+		f.Flush()
+	}
+}
+
 // CachingMiddleware handles the Redis logic
 func CachingMiddleware(rdb *cache.Client) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {

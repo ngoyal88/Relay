@@ -62,22 +62,23 @@ func (s *Store) set(cfg *Config) {
 
 // LoadAndWatch loads the config and watches for on-disk changes.
 func LoadAndWatch() (*Store, error) {
-	viper.AddConfigPath("./configs")
-	viper.SetConfigName("config")
-	viper.SetConfigType("yaml")
+	v := viper.NewWithOptions(viper.KeyDelimiter("::"))
+	v.AddConfigPath("./configs")
+	v.SetConfigName("config")
+	v.SetConfigType("yaml")
 
-	if err := viper.ReadInConfig(); err != nil {
+	if err := v.ReadInConfig(); err != nil {
 		return nil, err
 	}
 
 	store := &Store{}
-	if err := refresh(store); err != nil {
+	if err := refresh(v, store); err != nil {
 		return nil, err
 	}
 
-	viper.WatchConfig()
-	viper.OnConfigChange(func(e fsnotify.Event) {
-		if err := refresh(store); err != nil {
+	v.WatchConfig()
+	v.OnConfigChange(func(e fsnotify.Event) {
+		if err := refresh(v, store); err != nil {
 			log.Printf("[CONFIG] reload failed: %v", err)
 		} else {
 			log.Printf("[CONFIG] reloaded from %s", e.Name)
@@ -96,9 +97,10 @@ func Load() (*Config, error) {
 	return store.Get(), nil
 }
 
-func refresh(store *Store) error {
+
+func refresh(v *viper.Viper, store *Store) error {
 	var cfg Config
-	if err := viper.Unmarshal(&cfg); err != nil {
+	if err := v.Unmarshal(&cfg); err != nil {
 		return err
 	}
 	store.set(&cfg)
