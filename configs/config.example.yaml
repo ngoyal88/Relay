@@ -29,7 +29,7 @@ ratelimit:
 # Redis configuration
 redis:
   enabled: true
-  address: "localhost:6379"
+  address: "redis:6379"
   password: ""
   db: 0
 
