@@ -2,8 +2,8 @@
 
 [![Go Version](https://img.shields.io/badge/Go-1.25+-00ADD8?style=flat&logo=go)](https://golang.org)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Docker Pulls](https://img.shields.io/docker/pulls/yourusername/relay)](https://hub.docker.com/r/yourusername/relay)
-[![GitHub Stars](https://img.shields.io/github/stars/yourusername/relay)](https://github.com/yourusername/relay)
+[![Docker Pulls](https://img.shields.io/docker/pulls/ngoyal88/relay)](https://hub.docker.com/r/ngoyal88/relay)
+[![GitHub Stars](https://img.shields.io/github/stars/ngoyal99/relay)](https://github.com/ngoyal88/relay)
 
 > A high-performance reverse proxy and API gateway for AI services (OpenAI, Anthropic, etc.) with built-in caching, rate limiting, cost tracking, and observability.
 
@@ -32,7 +32,7 @@
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/relay.git
+git clone https://github.com/ngoyal88/relay.git
 cd relay
 
 # Copy and edit configuration
@@ -49,11 +49,11 @@ docker-compose up -d
 
 ```bash
 # Download latest release
-curl -sSL https://github.com/yourusername/relay/releases/latest/download/relay-linux-amd64 -o relay
+curl -sSL https://github.com/ngoyal88/relay/releases/latest/download/relay-linux-amd64 -o relay
 chmod +x relay
 
 # Create config
-curl -sSL https://raw.githubusercontent.com/yourusername/relay/main/configs/config.example.yaml -o config.yaml
+curl -sSL https://raw.githubusercontent.com/ngoyal88/relay/main/configs/config.example.yaml -o config.yaml
 
 # Run
 ./relay
@@ -62,7 +62,7 @@ curl -sSL https://raw.githubusercontent.com/yourusername/relay/main/configs/conf
 ### Option 3: From Source
 
 ```bash
-git clone https://github.com/yourusername/relay.git
+git clone https://github.com/ngoyal88/relay.git
 cd relay
 cp configs/config.example.yaml configs/config.yaml
 go run cmd/main.go
@@ -148,17 +148,17 @@ models:
 
 ```
 ┌─────────┐      ┌─────────────────────────────┐      ┌──────────┐
-│ Client  │─────▶│         Relay               │─────▶│ OpenAI   │
+│ Client  │─────▶│         Relay               │─────▶│ OpenAI  │
 └─────────┘      │                             │      │ API      │
                  │  ┌───────────────────────┐  │      └──────────┘
                  │  │ Request Logger        │  │
                  │  ├───────────────────────┤  │
                  │  │ Token Cost Tracker    │  │
                  │  ├───────────────────────┤  │      ┌──────────┐
-                 │  │ Redis Cache           │◀─┼─────▶│  Redis   │
+                 │  │ Redis Cache           │◀─┼────▶│  Redis  │
                  │  ├───────────────────────┤  │      └──────────┘
                  │  │ Rate Limiter          │  │
-                 │  ├───────────────────────┤  │
+                 │  ├───────────────────────┤  │─
                  │  │ Circuit Breaker       │  │
                  │  └───────────────────────┘  │
                  └─────────────────────────────┘

@@ -2,6 +2,7 @@ package config
 
 import (
 	"log"
+	"strings"
 	"sync"
 
 	"github.com/fsnotify/fsnotify"
@@ -108,6 +109,10 @@ func (s *Store) set(cfg *Config) {
 // LoadAndWatch loads the config and watches for on-disk changes.
 func LoadAndWatch() (*Store, error) {
 	v := viper.NewWithOptions(viper.KeyDelimiter("::"))
+
+	// Prefer env vars over file values: SERVER_PORT, REDIS_PASSWORD, AUTH_ADMIN_KEY, etc.
+	v.SetEnvKeyReplacer(strings.NewReplacer("::", "_", ".", "_"))
+	v.AutomaticEnv()
 	v.AddConfigPath("./configs")
 	v.SetConfigName("config")
 	v.SetConfigType("yaml")
