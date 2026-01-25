@@ -71,6 +71,14 @@ func RequestLoggingMiddleware(store storage.Store, enableLogging bool) func(http
 				CacheHit:     cacheHit,
 			}
 
+			if tokens, ok := GetTokenCountFromContext(r.Context()); ok {
+				entry.TokensUsed = tokens
+			}
+
+			if costUSD, ok := GetTokenCostFromContext(r.Context()); ok {
+				entry.CostUSD = costUSD
+			}
+
 			go func(logEntry storage.RequestLog) {
 				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 				defer cancel()

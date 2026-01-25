@@ -14,23 +14,25 @@ import (
 
 // APIKey represents an API key with metadata
 type APIKey struct {
-	Key         string    `json:"key"`
-	Name        string    `json:"name"`
-	UserID      string    `json:"user_id"`
-	RateLimit   float64   `json:"rate_limit"`   // requests per second
-	Burst       int       `json:"burst"`
-	Quota       int64     `json:"quota"`        // total requests allowed
-	Used        int64     `json:"used"`         // requests used
-	Active      bool      `json:"active"`
-	CreatedAt   time.Time `json:"created_at"`
+	Key         string     `json:"key"`
+	Name        string     `json:"name"`
+	UserID      string     `json:"user_id"`
+	RateLimit   float64    `json:"rate_limit"` // requests per second
+	Burst       int        `json:"burst"`
+	Quota       int64      `json:"quota"` // total requests allowed
+	Used        int64      `json:"used"`  // requests used
+	Active      bool       `json:"active"`
+	CreatedAt   time.Time  `json:"created_at"`
 	ExpiresAt   *time.Time `json:"expires_at,omitempty"`
 	LastUsedAt  *time.Time `json:"last_used_at,omitempty"`
-	Description string    `json:"description,omitempty"`
+	Description string     `json:"description,omitempty"`
 }
 
 type contextKey string
 
 const apiKeyContextKey contextKey = "api_key"
+const tokenCountContextKey contextKey = "token_count"
+const tokenCostContextKey contextKey = "token_cost"
 
 // AuthMiddleware validates API keys and enforces per-key limits
 func AuthMiddleware(rdb *cache.Client, enableAuth bool) func(http.Handler) http.Handler {
@@ -134,7 +136,7 @@ func incrementUsage(ctx context.Context, rdb *cache.Client, key string) {
 	}
 
 	keyData := fmt.Sprintf("apikey:%s", key)
-	
+
 	// Get current key
 	data, err := rdb.Get(ctx, keyData)
 	if err != nil {
@@ -160,6 +162,18 @@ func incrementUsage(ctx context.Context, rdb *cache.Client, key string) {
 func GetAPIKeyFromContext(ctx context.Context) (*APIKey, bool) {
 	apiKey, ok := ctx.Value(apiKeyContextKey).(*APIKey)
 	return apiKey, ok
+}
+
+// GetTokenCountFromContext returns the token count set by TokenCostLogger.
+func GetTokenCountFromContext(ctx context.Context) (int, bool) {
+	val, ok := ctx.Value(tokenCountContextKey).(int)
+	return val, ok
+}
+
+// GetTokenCostFromContext returns the estimated request cost set by TokenCostLogger.
+func GetTokenCostFromContext(ctx context.Context) (float64, bool) {
+	val, ok := ctx.Value(tokenCostContextKey).(float64)
+	return val, ok
 }
 
 func respondError(w http.ResponseWriter, message string, status int) {

@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"log"
@@ -36,33 +37,26 @@ func TokenCostLogger(cfgStore *config.Store) func(http.Handler) http.Handler {
 			// NopCloser makes it look like a Closeable ReadCloser
 			r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 
-			// 3. PARSE & COUNT (Async - don't slow down the request)
-			// We do this in a goroutine so the user request isn't delayed by token counting
-			go func(data []byte) {
-				var payload OpenAIRequest
-				if err := json.Unmarshal(data, &payload); err != nil {
-					// Not a valid OpenAI JSON? Maybe just a GET request. Ignore.
-					return
+			// 3. PARSE & COUNT (sync so values can be shared downstream)
+			var payload OpenAIRequest
+			if err := json.Unmarshal(bodyBytes, &payload); err == nil {
+				if cfg := cfgStore.Get(); cfg != nil && len(cfg.Models) > 0 {
+					fullText := ""
+					for _, msg := range payload.Messages {
+						fullText += msg.Content
+					}
+
+					count, _ := ai.CountTokens(payload.Model, fullText)
+					cost := ai.EstimateCost(count, payload.Model, cfg.Models)
+
+					ctx := context.WithValue(r.Context(), tokenCountContextKey, count)
+					ctx = context.WithValue(ctx, tokenCostContextKey, cost)
+					r = r.WithContext(ctx)
+
+					requestTokenHistogram.Observe(float64(count))
+					log.Printf("💰 [COST] Model: %s | Tokens: %d | Est. Cost: $%.6f", payload.Model, count, cost)
 				}
-
-				cfg := cfgStore.Get()
-				if cfg == nil || len(cfg.Models) == 0 {
-					return
-				}
-
-				// Combine all messages into one string to count
-				fullText := ""
-				for _, msg := range payload.Messages {
-					fullText += msg.Content
-				}
-
-				// Count!
-				count, _ := ai.CountTokens(payload.Model, fullText)
-				cost := ai.EstimateCost(count, payload.Model, cfg.Models)
-
-				requestTokenHistogram.Observe(float64(count))
-				log.Printf("💰 [COST] Model: %s | Tokens: %d | Est. Cost: $%.6f", payload.Model, count, cost)
-			}(bodyBytes)
+			}
 
 			// 4. PROCEED
 			next.ServeHTTP(w, r)
